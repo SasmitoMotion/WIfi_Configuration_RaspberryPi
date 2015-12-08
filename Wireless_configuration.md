@@ -13,6 +13,10 @@ note: you must check the file and open the file configuration
 
     ctrl_interface=DIR=/var/run/wpa_supplicant GROUP=netdev
     update_config=1
+    ap_scan=1
+    eapol_version=1
+    fast_reauth=1
+
 
     network={
         ssid="The_ESSID_from_earlier"
@@ -40,15 +44,14 @@ On the Raspberry Pi (and on Linux in general) you configure your network setting
 To configure you wireless network you want to modify the file such that it looks like the following:
 
     auto lo
+
     iface lo inet loopback
     iface eth0 inet dhcp
 
     allow-hotplug wlan0
-    auto wlan0
-
-    iface wlan0 inet dhcp
-    wpa-ssid "Your Network SSID"
-    wpa-psk "Your Password"
+    iface wlan0 inet manual
+    wpa-roam /etc/wpa_supplicant/wpa_supplicant.conf
+    iface default inet dhcp
    
 note: if you make your network SSID and make your passwaord check your wireless to access the system
 
@@ -68,7 +71,75 @@ check the configuration wireless  : sudo service networking reload
       
 note: if youre access to internet the connection see Tx and Rx 
 
-Referrence : http://raspberrypihq.com/how-to-add-wifi-to-the-raspberry-pi/  https://www.raspberrypi.org/documentation/configuration/wireless/wireless-cli.md  https://www.maketecheasier.com/setup-wifi-on-raspberry-pi/
+Install Server
 
+    sudo apt-get update
+    sudo apt-get install hostapd isc-dhcp-server
+    
+Set up DHCP server
+
+    sudo nano /etc/dhcp/dhcpd.conf
+    
+Find the line that say :
+
+    option domain-name "example.org";
+    option domain-name-servers ns1.example.org, ns2.example.org;
+
+And change to them to add a # in the beginning to say :
+
+    #option domain-name "example.org";
+    #option domain-name-servers ns1.example.org, ns2.example.org;
+
+Find the line that say :
+
+    # If this DHCP server is the official DHCP server for the local
+    # network, the authoritative directive should be uncommented.
+    #authoritative;
+
+and remove the # so it says
+
+    # If this DHCP server is the official DHCP server for the local
+    # network, the authoritative directive should be uncommented.
+    authoritative;
+
+running the file : /etc/default/isc-dhcp-server
+
+    sudo nano /etc/default/isc-dhcp-server
+    
+and scroll down to INTERFACES="" and update it to say INTERFACES="wlan0" 
+close and save the file CTRL X and then Y enter
+
+Configure Access Point
+
+Now we can configure the access point. We will set up a password-protected network so only people with the password can connect
+
+    sudo nano /etc/hostapd/hostapd.conf
+    
+Paste the following in, you can change the text after ssid= to another name
+
+    interface=wlan0
+    driver=rtl871xdrv
+    ssid=Pi_AP
+    hw_mode=g
+    channel=6
+    macaddr_acl=0
+    auth_algs=1
+    ignore_broadcast_ssid=0
+    wpa=2
+    wpa_passphrase=Raspberry
+    wpa_key_mgmt=WPA-PSK
+    wpa_pairwise=TKIP
+    rsn_pairwise=CCMP
+    
+Now we will tell the Pi where to find this configuration file. Run
+
+    sudo nano /etc/default/hostapd
+    
+Find the line #DAEMON_CONF="" and edit it so it says : DAEMON_CONF="/etc/hostapd/hostapd.conf"
+Don't forget to remove the # in front to activate it!
+then save the file CTRL X then Y and enter
+
+Referrence : http://raspberrypihq.com/how-to-add-wifi-to-the-raspberry-pi/  https://www.raspberrypi.org/documentation/configuration/wireless/wireless-cli.md  https://www.maketecheasier.com/setup-wifi-on-raspberry-pi/
+https://learn.adafruit.com/setting-up-a-raspberry-pi-as-a-wifi-access-point/install-software
 
 
